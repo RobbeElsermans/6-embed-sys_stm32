@@ -1,0 +1,14 @@
+
+Bestudeer/bekijk de wiki-pagina "stm32mcu"     ( https://wiki.st.com/stm32mcu/wiki/STM32StepByStep:STM32MCU_basics  ) 
+Werk een voorbeeld project uit om de led op het nucleo bordje te doen pinken.
+Gebruik de debugger om de code stap voor stap te doorlopen.
+Voeg aan deze code verschillende locale en globale variabelen (8, 16, ,32-bit , array) toe.
+Opgelet: zorg dat je de variabelen gebruikt in je code want anders gaat de compiler deze negeren...
+Ga na (gebruik de debbugger) op welke geheugenlocatie de variabelen staan (screenshot => PF)
+tip: gebruik de &-operator
+Noteer de adressen van deze variabelen (zijn deze gewoon oplopend)? Zijn de variabelen "aligned" ? 
+Ga na of het mogelijk is om rechtstreeks de led aan of uit te te zetten vanuit de debugger.
+
+Maak een nieuw project met zelfde functies maar gebruik de LL drivers ipv. de HAL drivers bij de aanmaak in stm32cube mx.
+
+Hou steeds je bevindingen bij in je portfolio, dit is het bewijs van je (eigen) geleverde werk!

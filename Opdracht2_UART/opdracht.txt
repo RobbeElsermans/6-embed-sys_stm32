@@ -1,0 +1,5 @@
+De Uart is een oudere maar nog veel gebruikt communicatie protocol in embedded systemen.
+De Uart kan op een eenvoudige manier commando's ontvangen vanuit een PC (via bvb. Realterm of Putty) om randapparatuur aan te sturen.
+Test de uart communicatie uit door een bestaand voorbeeld aan te passen.
+
+Bekijk goed al de instellingen en noteer deze samen met screenshots van de communicatie voor in je Portfolio
