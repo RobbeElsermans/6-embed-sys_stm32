@@ -1,0 +1,5 @@
+../Core/Src/h_brug.c:10:6:turnMotorVccOn	8	static
+../Core/Src/h_brug.c:14:6:turnMotorVccOff	8	static
+../Core/Src/h_brug.c:17:6:rotateLeft	16	static
+../Core/Src/h_brug.c:22:6:rotateRight	16	static
+../Core/Src/h_brug.c:27:6:rotateStop	8	static

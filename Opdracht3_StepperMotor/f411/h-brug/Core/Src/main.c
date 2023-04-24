@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "h_brug.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,6 +39,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -49,13 +52,28 @@ UART_HandleTypeDef huart2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM4_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
+
+void pwmSweep(void);
+void pwmConsole(void);
+void doAction(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+char buffer[5] = "";
+const char on[5] = "on";
+const char off[5] = "off";
+const char nextLine[2] = "\r\n";
+uint32_t timeout = 50;
 
+uint8_t index = 0;
+char karakter = 0;
+
+int16_t pwm;
 /* USER CODE END 0 */
 
 /**
@@ -87,14 +105,30 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_TIM4_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+
+  const char text[50] = "on->EN_M, off->DIS_M, [-100, 100]->pwm";
+  HAL_UART_Transmit(&huart2,text,sizeof(text),timeout);
+  HAL_UART_Transmit(&huart2,nextLine,sizeof(nextLine),timeout);
+
   while (1)
   {
+	  //pwmSweep();
+
+	  //vraag data op van de gebruiker
+	  //Dit ligt tussen de -100 en 100.
+	  // -100 is volledig links en 100 is volledig rechts.
+	  pwmConsole();
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -149,6 +183,118 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 84-1;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 100-1;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 83;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 100;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 50;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+  HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -197,7 +343,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(M_VCC_EN_GPIO_Port, M_VCC_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -205,17 +351,125 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LD2_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin;
+  /*Configure GPIO pin : M_VCC_EN_Pin */
+  GPIO_InitStruct.Pin = M_VCC_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(M_VCC_EN_GPIO_Port, &GPIO_InitStruct);
 
 }
 
 /* USER CODE BEGIN 4 */
+void pwmSweep(void){
+	  uint8_t pwm = 0;
+	  uint8_t isUp = 1;
+	  uint8_t isLeft = 1;
 
+	  //Zet de voeding aan.
+	  HAL_GPIO_WritePin(M_VCC_EN_GPIO_Port, M_VCC_EN_Pin, GPIO_PIN_SET);
+
+	  //Zet de timers aan.
+	  //HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+
+	  while (1)
+	  {
+		  if(isUp){
+			  pwm += 2;
+		  }
+		  else{
+			  pwm -=2;
+		  }
+
+		  //Als 1 cyclus up->down geweest is.
+		  if(pwm == 0 && isUp == 0){
+			  if(isLeft){
+				  isLeft = 0;
+			  }
+			  else{
+				  isLeft = 1;
+			  }
+		  }
+
+		  if(pwm >= 100){
+			  pwm = 100;
+			  isUp = 0;
+		  }
+		  else if(pwm <= 0){
+			  pwm = 0;
+			  isUp = 1;
+		  }
+
+		  if(isLeft){
+			  TIM3->CCR2 = 0;
+			  TIM3->CCR1 = pwm;
+		  }
+		  else{
+			  TIM3->CCR1 = 0;
+			  TIM3->CCR2 = pwm;
+		  }
+
+		  HAL_Delay(100);
+	  }
+}
+
+void pwmConsole(){
+	if(karakter != 13){//Zolang er geen enter is geweest, blijven kijken.
+		HAL_UART_Receive(&huart2,&karakter,4,timeout);
+		if(karakter != 0 && karakter != 13 && index < sizeof(buffer)){ //Als er een input is geweest en het is geen enter en de index is klener dan de buffer, verhoog de counter.
+			buffer[index] = karakter;
+		  	index++;
+		  	karakter = 0;
+		}
+	}
+	else if (karakter == 13){ // Er is een enter geweest
+		HAL_UART_Transmit(&huart2,buffer,sizeof(buffer),timeout);
+		HAL_UART_Transmit(&huart2,nextLine,sizeof(nextLine),timeout);
+
+		if(strcmp(buffer, on) == 0){
+			HAL_GPIO_WritePin(M_VCC_EN_GPIO_Port, M_VCC_EN_Pin, GPIO_PIN_SET);
+		}
+		else if(strcmp(buffer, off) == 0)
+		{
+			HAL_GPIO_WritePin(M_VCC_EN_GPIO_Port, M_VCC_EN_Pin, GPIO_PIN_RESET);
+		}
+		else
+		{
+		//het is een PWM waard
+			sscanf(buffer, "%d", &pwm);
+			doAction();
+		}
+
+		// Maak buffer leeg.
+		for(uint8_t i = 0; i < sizeof(buffer); i++){
+			buffer[i] = 0;
+		}
+		index = 0;
+		karakter = 0;
+		}
+
+	HAL_Delay(10);
+}
+
+void doAction(void){
+	if(pwm < 0 && pwm >= -100){
+		//ga naar links
+		TIM3->CCR2 = 0;
+		TIM3->CCR1 = pwm*(-1);  //positief maken
+	}
+	if(pwm > 0 && pwm <=100){
+		//ga naar rechts
+		TIM3->CCR2 = pwm;
+		TIM3->CCR1 = 0;
+	}
+	if(pwm == 0){
+		//stop
+		TIM3->CCR2 = 0;
+		TIM3->CCR1 = 0;
+	}
+}
 /* USER CODE END 4 */
 
 /**
