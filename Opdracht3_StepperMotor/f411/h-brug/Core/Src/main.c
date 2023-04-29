@@ -59,6 +59,7 @@ static void MX_TIM3_Init(void);
 void pwmSweep(void);
 void pwmConsole(void);
 void doAction(void);
+void doActionPwm(void);
 
 /* USER CODE END PFP */
 
@@ -113,12 +114,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
-
   const char text[50] = "on->EN_M, off->DIS_M, [-100, 100]->pwm";
   HAL_UART_Transmit(&huart2,text,sizeof(text),timeout);
   HAL_UART_Transmit(&huart2,nextLine,sizeof(nextLine),timeout);
+
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
 
   while (1)
   {
@@ -201,9 +202,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 84-1;
+  htim3.Init.Prescaler = 83;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 100-1;
+  htim3.Init.Period = 100;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
@@ -249,7 +250,6 @@ static void MX_TIM4_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM4_Init 1 */
 
@@ -269,28 +269,15 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 50;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM4_Init 2 */
 
   /* USER CODE END TIM4_Init 2 */
-  HAL_TIM_MspPostInit(&htim4);
 
 }
 
@@ -345,6 +332,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(M_VCC_EN_GPIO_Port, M_VCC_EN_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(M_RIGHT_EN_GPIO_Port, M_RIGHT_EN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(M_LEFT_EN_GPIO_Port, M_LEFT_EN_Pin, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -357,6 +350,20 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(M_VCC_EN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : M_RIGHT_EN_Pin */
+  GPIO_InitStruct.Pin = M_RIGHT_EN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(M_RIGHT_EN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : M_LEFT_EN_Pin */
+  GPIO_InitStruct.Pin = M_LEFT_EN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(M_LEFT_EN_GPIO_Port, &GPIO_InitStruct);
 
 }
 
@@ -407,6 +414,7 @@ void pwmSweep(void){
 			  TIM3->CCR1 = pwm;
 		  }
 		  else{
+
 			  TIM3->CCR1 = 0;
 			  TIM3->CCR2 = pwm;
 		  }
@@ -437,9 +445,9 @@ void pwmConsole(){
 		}
 		else
 		{
-		//het is een PWM waard
+		//het is een PWM waarde
 			sscanf(buffer, "%d", &pwm);
-			doAction();
+			doActionPwm();
 		}
 
 		// Maak buffer leeg.
@@ -453,21 +461,51 @@ void pwmConsole(){
 	HAL_Delay(10);
 }
 
-void doAction(void){
+void doActionPwm(void){
 	if(pwm < 0 && pwm >= -100){
 		//ga naar links
+		HAL_GPIO_WritePin(M_RIGHT_EN_GPIO_Port,M_RIGHT_Pin, 0);
+		HAL_GPIO_WritePin(M_LEFT_EN_GPIO_Port,M_LEFT_Pin, 1);
 		TIM3->CCR2 = 0;
 		TIM3->CCR1 = pwm*(-1);  //positief maken
 	}
 	if(pwm > 0 && pwm <=100){
 		//ga naar rechts
+		HAL_GPIO_WritePin(M_RIGHT_EN_GPIO_Port,M_RIGHT_Pin, 1);
+		HAL_GPIO_WritePin(M_LEFT_EN_GPIO_Port,M_LEFT_Pin, 0);
 		TIM3->CCR2 = pwm;
 		TIM3->CCR1 = 0;
 	}
 	if(pwm == 0){
 		//stop
+		HAL_GPIO_WritePin(M_RIGHT_EN_GPIO_Port,M_RIGHT_Pin, 0);
+		HAL_GPIO_WritePin(M_LEFT_EN_GPIO_Port,M_LEFT_Pin, 0);
 		TIM3->CCR2 = 0;
 		TIM3->CCR1 = 0;
+	}
+}
+
+void doAction(void){
+	if(pwm < 0 && pwm >= -100){
+		//ga naar links
+		HAL_GPIO_WritePin(M_RIGHT_GPIO_Port,M_RIGHT_Pin, 0);
+		HAL_GPIO_WritePin(M_LEFT_GPIO_Port,M_LEFT_Pin, 1);
+		//TIM3->CCR2 = 0;
+		//TIM3->CCR1 = pwm*(-1);  //positief maken
+	}
+	if(pwm > 0 && pwm <=100){
+		//ga naar rechts
+		HAL_GPIO_WritePin(M_RIGHT_GPIO_Port,M_RIGHT_Pin, 1);
+		HAL_GPIO_WritePin(M_LEFT_GPIO_Port,M_LEFT_Pin, 0);
+		//TIM3->CCR2 = pwm;
+		//TIM3->CCR1 = 0;
+	}
+	if(pwm == 0){
+		//stop
+		HAL_GPIO_WritePin(M_RIGHT_GPIO_Port,M_RIGHT_Pin, 0);
+		HAL_GPIO_WritePin(M_LEFT_GPIO_Port,M_LEFT_Pin, 0);
+		//TIM3->CCR2 = 0;
+		//TIM3->CCR1 = 0;
 	}
 }
 /* USER CODE END 4 */
