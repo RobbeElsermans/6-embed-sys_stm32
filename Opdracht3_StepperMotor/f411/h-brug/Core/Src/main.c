@@ -21,7 +21,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "h_brug.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -195,6 +194,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -207,6 +207,15 @@ static void MX_TIM3_Init(void)
   htim3.Init.Period = 100;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -410,11 +419,14 @@ void pwmSweep(void){
 		  }
 
 		  if(isLeft){
+			  HAL_GPIO_WritePin(M_RIGHT_EN_GPIO_Port,M_RIGHT_Pin, 0);
+			  HAL_GPIO_WritePin(M_LEFT_EN_GPIO_Port,M_LEFT_Pin, 1);
 			  TIM3->CCR2 = 0;
 			  TIM3->CCR1 = pwm;
 		  }
 		  else{
-
+			  HAL_GPIO_WritePin(M_RIGHT_EN_GPIO_Port,M_RIGHT_Pin, 1);
+			  HAL_GPIO_WritePin(M_LEFT_EN_GPIO_Port,M_LEFT_Pin, 0);
 			  TIM3->CCR1 = 0;
 			  TIM3->CCR2 = pwm;
 		  }
@@ -467,7 +479,7 @@ void doActionPwm(void){
 		HAL_GPIO_WritePin(M_RIGHT_EN_GPIO_Port,M_RIGHT_Pin, 0);
 		HAL_GPIO_WritePin(M_LEFT_EN_GPIO_Port,M_LEFT_Pin, 1);
 		TIM3->CCR2 = 0;
-		TIM3->CCR1 = pwm*(-1);  //positief maken
+		TIM3->CCR1 = (pwm*(-1));  //positief maken
 	}
 	if(pwm > 0 && pwm <=100){
 		//ga naar rechts
